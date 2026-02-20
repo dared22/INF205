@@ -39,3 +39,11 @@
 
 # debug information files
 *.dwo
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editor files
+.vscode/
