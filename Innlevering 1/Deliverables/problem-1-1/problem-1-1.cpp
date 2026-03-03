@@ -27,5 +27,4 @@ int main() {
     std::cout << "Byte difference between p1 and p2: " << byte_difference << " bytes" << std::endl;
     if (byte_difference == sizeof(int))
         std::cout << "Result: sizeof(int) matches pointer increment distance.\n";
-    return 0;
 }
