@@ -23,15 +23,15 @@ int main() {
     cout << endl;
     cout << "long long (" << sizeof(char_long_long) << " bytes): ";
     for (int j = 0; j < sizeof(char_long_long); j++) {
-        cout << "0x" << hex << (int)*((unsigned char*)&char_long_long + j) << " ";
+        cout << "0x" << hex << (int)*((unsigned char*)&char_long_long + j) << " "; //stream insertion operator
     }
     cout << endl;
     return 0; 
 }
 
-//to get -12 you need to take maximum value of a byte, which is 255. Add 1. and subtract 12. 
+//to get -12 you need to take maximum value of a byte, which is 255. Add 1. and subtract 12. or take 2^8 = 256
 //So, 255 + 1 - 12 = 244
-//Now since hex is base 16 system divide 244 by 16.
+//Now since hex is base 16 system (0 - F) divide 244 by 16.
 //We get 244 / 16 = 15 with 4 as remainder.
 //Hence 15 = f, 4 = 4
 //0x is just a prefix to mark that we are using hex.
