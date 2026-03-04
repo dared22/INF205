@@ -1,33 +1,40 @@
-#ifndef GRAPH_H
-#define GRAPH_H
+#ifndef MATRIXGRAPH_H
+#define MATRIXGRAPH_H
 
 #include "abstract_graph.h"
+#include "Node.h"
+
 #include <string>
 #include <vector>
 #include <map>
 
-class Node;
-class Edge;
-
-class Graph : public AbstractGraph {
+class MatrixGraph : public AbstractGraph {
 private:
-    std::vector<Node*> nodes_;
-    std::vector<Edge*> edges_;
-    std::map<std::string, Node*> nodesByLabel_;
 
-    Node* findOrCreateNode(const std::string& label);
-    void removeEdge(Edge* edge);
-    void removeIfIsolated(Node* node);
+    std::vector<Node*> nodes_;
+
+    std::map<std::string, int> labelToIndex_;
+
+    std::vector<std::vector<std::vector<std::string>>> matrix_;
+
+    std::vector<Edge*> edges_;
+
+    int findOrCreateNodeIndex(const std::string& label);
+
+    void expandMatrix();
+    void removeNodeByIndex(int index);
+    void removeIfIsolated(int index);
+    bool hasConnections(int index);
 
 public:
-    ~Graph() override;
+    ~MatrixGraph() override;
 
     void insert_edge(std::string node_a_label,
                     std::string edge_label,
                     std::string node_b_label) override;
 
     Node* find_node(const std::string& label) const override;
-    
+
     const std::vector<Node*>& nodes() const override;
     const std::vector<Edge*>& edges() const override;
 
