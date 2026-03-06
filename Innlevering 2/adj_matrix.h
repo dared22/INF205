@@ -29,6 +29,12 @@ private:
 public:
     ~MatrixGraph() override;
 
+    // Rule of Five task 2.6 (destructor already implemented before this task)
+    MatrixGraph(const MatrixGraph& other);               // copy constructor
+    MatrixGraph& operator=(const MatrixGraph& other);    // copy assignment
+    MatrixGraph(MatrixGraph&& other) noexcept;           // move constructor
+    MatrixGraph& operator=(MatrixGraph&& other) noexcept;// move assignment
+
     void insert_edge(std::string node_a_label,
                     std::string edge_label,
                     std::string node_b_label) override;

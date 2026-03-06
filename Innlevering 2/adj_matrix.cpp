@@ -256,3 +256,96 @@ void MatrixGraph::remove_node(std::string node_label) {
         }
     }
 }
+
+// Rule of Five implementations task 2.6
+
+// Copy Constructor
+MatrixGraph::MatrixGraph(const MatrixGraph& other) { // "other" is the source object being copied, has to be const to prevent modification
+    // Copy nodes
+    for (Node* node : other.nodes_) { // Create a new Node object for each node in the source graph
+        Node* newNode = new Node(node->label());
+        nodes_.push_back(newNode);
+        labelToIndex_[node->label()] = nodes_.size() - 1;
+    }
+
+    // Copy matrix
+    matrix_ = other.matrix_;
+
+    // Copy edges
+    for (Edge* edge : other.edges_) { // Create a new Edge object for each edge in the source graph, connecting the corresponding new nodes
+        Node* sourceNode = nodes_[labelToIndex_[edge->sourceNode()->label()]];
+        Node* targetNode = nodes_[labelToIndex_[edge->targetNode()->label()]];
+        Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+        edges_.push_back(newEdge);
+        sourceNode->addIncidentEdge(newEdge);
+        if (sourceNode != targetNode) {
+            targetNode->addIncidentEdge(newEdge);
+        }
+    }
+}
+
+// Copy Assignment Operator
+MatrixGraph& MatrixGraph::operator=(const MatrixGraph& other) {
+    if (this != &other) {
+        // Clean up existing resources, but only if we're not self assigning
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+        nodes_.clear();
+        edges_.clear();
+        labelToIndex_.clear();
+        matrix_.clear();
+
+        // Copy from other
+        for (Node* node : other.nodes_) { // Create a new Node object for each node in the source graph
+            Node* newNode = new Node(node->label());
+            nodes_.push_back(newNode);
+            labelToIndex_[node->label()] = nodes_.size() - 1;
+        }
+
+        matrix_ = other.matrix_;
+
+        for (Edge* edge : other.edges_) { // Create a new Edge object for each edge in the source graph, connecting the corresponding new nodes
+            Node* sourceNode = nodes_[labelToIndex_[edge->sourceNode()->label()]];
+            Node* targetNode = nodes_[labelToIndex_[edge->targetNode()->label()]];
+            Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+            edges_.push_back(newEdge);
+            sourceNode->addIncidentEdge(newEdge);
+            if (sourceNode != targetNode) {
+                targetNode->addIncidentEdge(newEdge);
+            }
+        }
+    }
+    return *this;
+}
+
+// Move Constructor
+MatrixGraph::MatrixGraph(MatrixGraph&& other) noexcept // "other" is the source object being moved, should be an rvalue reference (MatrixGraph&&) to indicate it can be modified
+    : nodes_(std::move(other.nodes_)), // Move the vector of node pointers from the source graph to this graph, leaving the source graph with an empty vector, and so on for the other members
+      labelToIndex_(std::move(other.labelToIndex_)), 
+      matrix_(std::move(other.matrix_)),
+      edges_(std::move(other.edges_)) {
+}
+
+// Move Assignment Operator
+MatrixGraph& MatrixGraph::operator=(MatrixGraph&& other) noexcept { // "other" is the source object being moved, should be an rvalue reference (MatrixGraph&&) to indicate it can be modified
+    if (this != &other) { // Check for self-assignment, though it's less common with move semantics, it's still good practice to check
+        // Clean up existing resources
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+
+        // Move from other
+        nodes_ = std::move(other.nodes_);
+        labelToIndex_ = std::move(other.labelToIndex_);
+        matrix_ = std::move(other.matrix_);
+        edges_ = std::move(other.edges_);
+    }
+    return *this;
+}
