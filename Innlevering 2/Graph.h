@@ -20,8 +20,8 @@ private:
     void removeIfIsolated(Node* node);
 
 public:
-    Graph() = default;                                    // default constructor
-    ~Graph() override;
+    Graph() = default;                          // default constructor
+    ~Graph() override;                          // destructor
     Graph(const Graph& other);                  // copy constructor
     Graph& operator=(const Graph& other);       // copy assignment
     Graph(Graph&& other) noexcept;              // move constructor
