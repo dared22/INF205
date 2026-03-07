@@ -27,6 +27,7 @@ private:
     bool hasConnections(int index);
 
 public:
+    MatrixGraph() = default;                             // default constructor
     ~MatrixGraph() override;
 
     // Rule of Five task 2.6 (destructor already implemented before this task)

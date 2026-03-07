@@ -4,6 +4,7 @@
 #include "edge.h"
 
 #include <utility>
+#include <algorithm>
 
 #include <fstream>
 #include <iostream>
@@ -190,6 +191,90 @@ const std::vector<Node*>& Graph::nodes() const {
 
 const std::vector<Edge*>& Graph::edges() const {
     return edges_;
+}
 
+// Copy Constructor
+Graph::Graph(const Graph& other) {
+    // Copy all nodes first
+    for (Node* node : other.nodes_) { // Create a new Node object for each node in the source graph
+        Node* newNode = new Node(node->label()); // Create a new Node object with the same label as the node in the source graph
+        nodes_.push_back(newNode);
+        nodesByLabel_[node->label()] = newNode;
+    }
 
+    // Copy all edges
+    for (Edge* edge : other.edges_) { // Create a new Edge object for each edge in the source graph, connecting the corresponding new nodes
+        Node* sourceNode = nodesByLabel_[edge->sourceNode()->label()]; // Look up the corresponding new node in this graph using the label of the source node from the edge in the source graph, and so on for the target node
+        Node* targetNode = nodesByLabel_[edge->targetNode()->label()];
+        Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+        edges_.push_back(newEdge);
+
+        sourceNode->addIncidentEdge(newEdge);
+        if (sourceNode != targetNode) {
+            targetNode->addIncidentEdge(newEdge);
+        }
+    }
+}
+
+// Copy Assignment Operator
+Graph& Graph::operator=(const Graph& other) {
+    if (this != &other) {
+        // Clean up existing resources
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+        nodes_.clear();
+        edges_.clear();
+        nodesByLabel_.clear();
+
+        // Copy all nodes
+        for (Node* node : other.nodes_) {
+            Node* newNode = new Node(node->label());
+            nodes_.push_back(newNode);
+            nodesByLabel_[node->label()] = newNode;
+        }
+
+        // Copy all edges
+        for (Edge* edge : other.edges_) { // Create a new Edge object for each edge in the source graph, connecting the corresponding new nodes
+            Node* sourceNode = nodesByLabel_[edge->sourceNode()->label()]; // Look up the corresponding new node in this graph using the label of the source node from the edge in the source graph, and so on for the target node
+            Node* targetNode = nodesByLabel_[edge->targetNode()->label()];
+            Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+            edges_.push_back(newEdge);
+
+            sourceNode->addIncidentEdge(newEdge);
+            if (sourceNode != targetNode) {
+                targetNode->addIncidentEdge(newEdge);
+            }
+        }
+    }
+    return *this;
+}
+
+// Move Constructor
+Graph::Graph(Graph&& other) noexcept // "other" is the source object being moved, should be an rvalue reference (Graph&&) to indicate it can be modified
+    : nodes_(std::move(other.nodes_)),
+      edges_(std::move(other.edges_)),
+      nodesByLabel_(std::move(other.nodesByLabel_)) {
+}
+
+// Move Assignment Operator
+Graph& Graph::operator=(Graph&& other) noexcept { // "other" is the source object being moved, should be an rvalue reference (Graph&&) to indicate it can be modified
+    if (this != &other) {
+        // Clean up existing resources
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+
+        // Move resources from other
+        nodes_ = std::move(other.nodes_);
+        edges_ = std::move(other.edges_);
+        nodesByLabel_ = std::move(other.nodesByLabel_);
+    }
+    return *this;
 }

@@ -20,7 +20,12 @@ private:
     void removeIfIsolated(Node* node);
 
 public:
+    Graph() = default;                                    // default constructor
     ~Graph() override;
+    Graph(const Graph& other);                  // copy constructor
+    Graph& operator=(const Graph& other);       // copy assignment
+    Graph(Graph&& other) noexcept;              // move constructor
+    Graph& operator=(Graph&& other) noexcept;   // move assignment
 
     void insert_edge(std::string node_a_label,
                     std::string edge_label,

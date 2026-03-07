@@ -1,0 +1,5 @@
+Paris road London.
+London train Berlin.
+Berlin flight Paris.
+Paris flight Paris.
+Paris bus London.
