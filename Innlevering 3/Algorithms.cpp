@@ -6,10 +6,28 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 namespace {
+
+using AdjacencyList = std::unordered_map<const Node*, std::vector<const Edge*>>;
+
+AdjacencyList build_outgoing_edges(const AbstractGraph& graph) {
+    AdjacencyList outgoing;
+    outgoing.reserve(graph.nodes().size());
+
+    for (const Node* node : graph.nodes()) {
+        outgoing[node];
+    }
+
+    for (const Edge* edge : graph.edges()) {
+        outgoing[edge->sourceNode()].push_back(edge);
+    }
+
+    return outgoing;
+}
 
 struct TarjanState {
     std::unordered_map<const Node*, int> index_by_node;
@@ -20,7 +38,7 @@ struct TarjanState {
     int next_index = 0;
 };
 
-void strongconnect(const Node* node, TarjanState& state) {
+void strongconnect(const Node* node, const AdjacencyList& outgoing_edges, TarjanState& state) {
     state.index_by_node[node] = state.next_index;
     state.lowlink_by_node[node] = state.next_index;
     ++state.next_index;
@@ -28,15 +46,18 @@ void strongconnect(const Node* node, TarjanState& state) {
     state.stack.push_back(node);
     state.on_stack[node] = true;
 
-    for (const Edge* edge : node->outgoing_edges()) {
-        const Node* successor = edge->target_node();
-        if (state.index_by_node.find(successor) == state.index_by_node.end()) {
-            strongconnect(successor, state);
-            state.lowlink_by_node[node] =
-                std::min(state.lowlink_by_node[node], state.lowlink_by_node[successor]);
-        } else if (state.on_stack[successor]) {
-            state.lowlink_by_node[node] =
-                std::min(state.lowlink_by_node[node], state.index_by_node[successor]);
+    const auto outgoing = outgoing_edges.find(node);
+    if (outgoing != outgoing_edges.end()) {
+        for (const Edge* edge : outgoing->second) {
+            const Node* successor = edge->targetNode();
+            if (state.index_by_node.find(successor) == state.index_by_node.end()) {
+                strongconnect(successor, outgoing_edges, state);
+                state.lowlink_by_node[node] =
+                    std::min(state.lowlink_by_node[node], state.lowlink_by_node[successor]);
+            } else if (state.on_stack[successor]) {
+                state.lowlink_by_node[node] =
+                    std::min(state.lowlink_by_node[node], state.index_by_node[successor]);
+            }
         }
     }
 
@@ -67,6 +88,7 @@ std::vector<std::vector<std::size_t>> compute_sequence_reachability(
 ) {
     const auto& nodes = graph.nodes();
     const std::size_t node_count = nodes.size();
+    const AdjacencyList outgoing_edges = build_outgoing_edges(graph);
 
     std::unordered_map<const Node*, std::size_t> node_index;
     node_index.reserve(node_count);
@@ -93,12 +115,18 @@ std::vector<std::vector<std::size_t>> compute_sequence_reachability(
             ++stamp;
 
             for (const std::size_t current_index : frontier) {
-                for (const Edge* edge : nodes[current_index]->outgoing_edges()) {
+                const Node* current = nodes[current_index];
+                const auto outgoing = outgoing_edges.find(current);
+                if (outgoing == outgoing_edges.end()) {
+                    continue;
+                }
+
+                for (const Edge* edge : outgoing->second) {
                     if (edge->label() != label) {
                         continue;
                     }
 
-                    const std::size_t target_index = node_index[edge->target_node()];
+                    const std::size_t target_index = node_index[edge->targetNode()];
                     if (seen[target_index] == stamp) {
                         continue;
                     }
@@ -126,11 +154,12 @@ std::vector<std::vector<std::size_t>> compute_sequence_reachability(
 
 std::vector<std::vector<const Node*>> tarjan_strongly_connected_components(const AbstractGraph& graph) {
     const auto& nodes = graph.nodes();
+    const AdjacencyList outgoing_edges = build_outgoing_edges(graph);
     TarjanState state;
 
     for (const Node* node : nodes) {
         if (state.index_by_node.find(node) == state.index_by_node.end()) {
-            strongconnect(node, state);
+            strongconnect(node, outgoing_edges, state);
         }
     }
 

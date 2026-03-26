@@ -3,46 +3,22 @@
 #include "Edge.h"
 #include "Node.h"
 
+#include <algorithm>
 #include <fstream>
-#include <sstream>
-#include <stdexcept>
+#include <iostream>
 #include <utility>
 
-namespace {
-
-void parse_and_insert_line(
-    const std::string& line,
-    AbstractGraph& graph,
-    const std::string& filename,
-    std::size_t line_number
-) {
-    if (line.empty()) {
-        return;
+Node* LinkedGraph::findOrCreateNode(const std::string& label) {
+    const auto found = nodesByLabel_.find(label);
+    if (found != nodesByLabel_.end()) {
+        return found->second;
     }
 
-    std::istringstream iss(line);
-    std::string source_label;
-    std::string edge_label;
-    std::string target_label;
-    std::string trailing_token;
-
-    if (!(iss >> source_label >> edge_label >> target_label)) {
-        return;
-    }
-
-    if (!target_label.empty() && target_label.back() == '.') {
-        target_label.pop_back();
-    } else if (iss >> trailing_token && trailing_token == ".") {
-    } else {
-        throw std::runtime_error(
-            "Invalid triple notation in " + filename + " at line " + std::to_string(line_number)
-        );
-    }
-
-    graph.insert_edge(source_label, edge_label, target_label);
+    Node* node = new Node(label);
+    nodesByLabel_[label] = node;
+    nodes_.push_back(node);
+    return node;
 }
-
-}  // namespace
 
 LinkedGraph::~LinkedGraph() {
     for (Edge* edge : edges_) {
@@ -54,41 +30,133 @@ LinkedGraph::~LinkedGraph() {
     }
 }
 
-void LinkedGraph::insert_edge(
-    const std::string& source_label,
-    const std::string& edge_label,
-    const std::string& target_label
-) {
-    Node* source_node = find_or_create_node(source_label);
-    Node* target_node = find_or_create_node(target_label);
+void LinkedGraph::insert_edge(std::string node_a_label, std::string edge_label, std::string node_b_label) {
+    Node* sourceNode = findOrCreateNode(node_a_label);
+    Node* targetNode = findOrCreateNode(node_b_label);
 
-    Edge* edge = new Edge(edge_label, source_node, target_node);
+    Edge* edge = new Edge(std::move(edge_label), sourceNode, targetNode);
     edges_.push_back(edge);
 
-    source_node->add_incident_edge(edge);
-    source_node->add_outgoing_edge(edge);
-    if (target_node != source_node) {
-        target_node->add_incident_edge(edge);
+    sourceNode->addIncidentEdge(edge);
+    if (targetNode != sourceNode) {
+        targetNode->addIncidentEdge(edge);
+    }
+}
+
+void LinkedGraph::save(const std::string& filename) {
+    std::ofstream file(filename);
+
+    for (Edge* edge : edges_) {
+        file << edge->sourceNode()->label() << " "
+             << edge->label() << " "
+             << edge->targetNode()->label() << "." << std::endl;
     }
 }
 
 void LinkedGraph::load(const std::string& filename) {
-    std::ifstream input(filename);
-    if (!input) {
-        throw std::runtime_error("Could not open graph file: " + filename);
-    }
+    std::ifstream file(filename);
+    std::string sourceLabel;
+    std::string edgeLabel;
+    std::string targetLabel;
 
-    std::string line;
-    std::size_t line_number = 0;
-    while (std::getline(input, line)) {
-        ++line_number;
-        parse_and_insert_line(line, *this, filename, line_number);
+    while (file >> sourceLabel >> edgeLabel >> targetLabel) {
+        if (!targetLabel.empty() && targetLabel.back() == '.') {
+            targetLabel.pop_back();
+        }
+        insert_edge(sourceLabel, edgeLabel, targetLabel);
     }
 }
 
 Node* LinkedGraph::find_node(const std::string& label) const {
-    const auto it = nodes_by_label_.find(label);
-    return it == nodes_by_label_.end() ? nullptr : it->second;
+    const auto found = nodesByLabel_.find(label);
+    if (found == nodesByLabel_.end()) {
+        return nullptr;
+    }
+    return found->second;
+}
+
+void LinkedGraph::removeEdge(Edge* edge) {
+    edge->sourceNode()->removeIncidentEdge(edge);
+    edge->targetNode()->removeIncidentEdge(edge);
+
+    edges_.erase(
+        std::remove(edges_.begin(), edges_.end(), edge),
+        edges_.end()
+    );
+
+    delete edge;
+}
+
+void LinkedGraph::removeIfIsolated(Node* node) {
+    if (!node->incidentEdges().empty()) {
+        return;
+    }
+
+    nodesByLabel_.erase(node->label());
+    nodes_.erase(
+        std::remove(nodes_.begin(), nodes_.end(), node),
+        nodes_.end()
+    );
+
+    delete node;
+}
+
+void LinkedGraph::disconnect(std::string node_a_label, std::string node_b_label) {
+    Node* source = find_node(node_a_label);
+    Node* target = find_node(node_b_label);
+
+    if (!source || !target) {
+        return;
+    }
+
+    std::vector<Edge*> toRemove;
+    for (Edge* edge : edges_) {
+        if (edge->sourceNode() == source && edge->targetNode() == target) {
+            toRemove.push_back(edge);
+        }
+    }
+
+    for (Edge* edge : toRemove) {
+        removeEdge(edge);
+    }
+
+    removeIfIsolated(source);
+    if (target != source) {
+        removeIfIsolated(target);
+    }
+}
+
+void LinkedGraph::remove_node(std::string node_label) {
+    Node* node = find_node(node_label);
+    if (!node) {
+        return;
+    }
+
+    std::vector<Edge*> toRemove(node->incidentEdges().begin(), node->incidentEdges().end());
+    std::vector<Node*> neighbors;
+    for (Edge* edge : toRemove) {
+        if (edge->sourceNode() != node) {
+            neighbors.push_back(edge->sourceNode());
+        }
+        if (edge->targetNode() != node) {
+            neighbors.push_back(edge->targetNode());
+        }
+    }
+
+    for (Edge* edge : toRemove) {
+        removeEdge(edge);
+    }
+
+    nodesByLabel_.erase(node->label());
+    nodes_.erase(
+        std::remove(nodes_.begin(), nodes_.end(), node),
+        nodes_.end()
+    );
+    delete node;
+
+    for (Node* neighbor : neighbors) {
+        removeIfIsolated(neighbor);
+    }
 }
 
 const std::vector<Node*>& LinkedGraph::nodes() const {
@@ -99,14 +167,76 @@ const std::vector<Edge*>& LinkedGraph::edges() const {
     return edges_;
 }
 
-Node* LinkedGraph::find_or_create_node(const std::string& label) {
-    const auto it = nodes_by_label_.find(label);
-    if (it != nodes_by_label_.end()) {
-        return it->second;
+LinkedGraph::LinkedGraph(const LinkedGraph& other) {
+    for (Node* node : other.nodes_) {
+        Node* newNode = new Node(node->label());
+        nodes_.push_back(newNode);
+        nodesByLabel_[node->label()] = newNode;
     }
 
-    Node* node = new Node(label);
-    nodes_.push_back(node);
-    nodes_by_label_[label] = node;
-    return node;
+    for (Edge* edge : other.edges_) {
+        Node* sourceNode = nodesByLabel_[edge->sourceNode()->label()];
+        Node* targetNode = nodesByLabel_[edge->targetNode()->label()];
+        Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+        edges_.push_back(newEdge);
+
+        sourceNode->addIncidentEdge(newEdge);
+        if (sourceNode != targetNode) {
+            targetNode->addIncidentEdge(newEdge);
+        }
+    }
+}
+
+LinkedGraph& LinkedGraph::operator=(const LinkedGraph& other) {
+    if (this != &other) {
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+        nodes_.clear();
+        edges_.clear();
+        nodesByLabel_.clear();
+
+        for (Node* node : other.nodes_) {
+            Node* newNode = new Node(node->label());
+            nodes_.push_back(newNode);
+            nodesByLabel_[node->label()] = newNode;
+        }
+
+        for (Edge* edge : other.edges_) {
+            Node* sourceNode = nodesByLabel_[edge->sourceNode()->label()];
+            Node* targetNode = nodesByLabel_[edge->targetNode()->label()];
+            Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+            edges_.push_back(newEdge);
+
+            sourceNode->addIncidentEdge(newEdge);
+            if (sourceNode != targetNode) {
+                targetNode->addIncidentEdge(newEdge);
+            }
+        }
+    }
+    return *this;
+}
+
+LinkedGraph::LinkedGraph(LinkedGraph&& other) noexcept
+    : nodes_(std::move(other.nodes_)),
+      edges_(std::move(other.edges_)),
+      nodesByLabel_(std::move(other.nodesByLabel_)) {}
+
+LinkedGraph& LinkedGraph::operator=(LinkedGraph&& other) noexcept {
+    if (this != &other) {
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+
+        nodes_ = std::move(other.nodes_);
+        edges_ = std::move(other.edges_);
+        nodesByLabel_ = std::move(other.nodesByLabel_);
+    }
+    return *this;
 }

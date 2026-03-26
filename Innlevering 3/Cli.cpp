@@ -23,6 +23,10 @@ long parse_positive_long(const std::string& value, const std::string& name) {
     return parsed;
 }
 
+bool is_flag(const std::string& value) {
+    return !value.empty() && value.front() == '-';
+}
+
 void apply_optional_flag(
     const std::string& flag,
     OutputMode& output_mode,
@@ -78,41 +82,86 @@ std::vector<std::string> parse_query_line(const std::string& line, const std::st
 }  // namespace
 
 CommonCliOptions parse_scc_cli(int argc, char** argv) {
-    if (argc < 4) {
+    if (argc < 2) {
         throw std::runtime_error(
-            "Usage: ./graph-benchmark-scc <number of nodes> <number of edges> <graph file> "
+            "Usage: ./graph-benchmark-scc [<number of nodes> <number of edges>] <graph file> "
             "[--silent|--verbose] [--linked|--matrix]"
         );
     }
 
     CommonCliOptions options;
-    options.expected_nodes = parse_positive_long(argv[1], "number of nodes");
-    options.expected_edges = parse_positive_long(argv[2], "number of edges");
-    options.graph_file = argv[3];
+    std::vector<std::string> positional_arguments;
+    std::vector<std::string> flags;
 
-    for (int index = 4; index < argc; ++index) {
-        apply_optional_flag(argv[index], options.output_mode, options.representation);
+    for (int index = 1; index < argc; ++index) {
+        const std::string argument = argv[index];
+        if (is_flag(argument)) {
+            flags.push_back(argument);
+        } else {
+            positional_arguments.push_back(argument);
+        }
+    }
+
+    if (positional_arguments.size() == 3) {
+        options.expected_nodes = parse_positive_long(positional_arguments[0], "number of nodes");
+        options.expected_edges = parse_positive_long(positional_arguments[1], "number of edges");
+        options.graph_file = positional_arguments[2];
+        options.counts_provided = true;
+    } else if (positional_arguments.size() == 1) {
+        options.graph_file = positional_arguments[0];
+    } else {
+        throw std::runtime_error(
+            "Usage: ./graph-benchmark-scc [<number of nodes> <number of edges>] <graph file> "
+            "[--silent|--verbose] [--linked|--matrix]"
+        );
+    }
+
+    for (const std::string& flag : flags) {
+        apply_optional_flag(flag, options.output_mode, options.representation);
     }
 
     return options;
 }
 
 DiamondCliOptions parse_diamond_cli(int argc, char** argv) {
-    if (argc < 5) {
+    if (argc < 3) {
         throw std::runtime_error(
-            "Usage: ./graph-benchmark-diamond <number of nodes> <number of edges> "
+            "Usage: ./graph-benchmark-diamond [<number of nodes> <number of edges>] "
             "<graph file> <query file> [--silent|--verbose] [--linked|--matrix]"
         );
     }
 
     DiamondCliOptions options;
-    options.expected_nodes = parse_positive_long(argv[1], "number of nodes");
-    options.expected_edges = parse_positive_long(argv[2], "number of edges");
-    options.graph_file = argv[3];
-    options.query_file = argv[4];
+    std::vector<std::string> positional_arguments;
+    std::vector<std::string> flags;
 
-    for (int index = 5; index < argc; ++index) {
-        apply_optional_flag(argv[index], options.output_mode, options.representation);
+    for (int index = 1; index < argc; ++index) {
+        const std::string argument = argv[index];
+        if (is_flag(argument)) {
+            flags.push_back(argument);
+        } else {
+            positional_arguments.push_back(argument);
+        }
+    }
+
+    if (positional_arguments.size() == 4) {
+        options.expected_nodes = parse_positive_long(positional_arguments[0], "number of nodes");
+        options.expected_edges = parse_positive_long(positional_arguments[1], "number of edges");
+        options.graph_file = positional_arguments[2];
+        options.query_file = positional_arguments[3];
+        options.counts_provided = true;
+    } else if (positional_arguments.size() == 2) {
+        options.graph_file = positional_arguments[0];
+        options.query_file = positional_arguments[1];
+    } else {
+        throw std::runtime_error(
+            "Usage: ./graph-benchmark-diamond [<number of nodes> <number of edges>] "
+            "<graph file> <query file> [--silent|--verbose] [--linked|--matrix]"
+        );
+    }
+
+    for (const std::string& flag : flags) {
+        apply_optional_flag(flag, options.output_mode, options.representation);
     }
 
     return options;

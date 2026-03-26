@@ -2,6 +2,7 @@
 
 #include "Edge.h"
 
+#include <algorithm>
 #include <utility>
 
 Node::Node(std::string label) : label_(std::move(label)) {}
@@ -10,22 +11,19 @@ const std::string& Node::label() const {
     return label_;
 }
 
-void Node::add_incident_edge(Edge* edge) {
+void Node::addIncidentEdge(Edge* edge) {
     if (edge != nullptr) {
-        incident_edges_.push_back(edge);
+        incidentEdges_.push_back(edge);
     }
 }
 
-void Node::add_outgoing_edge(Edge* edge) {
-    if (edge != nullptr) {
-        outgoing_edges_.push_back(edge);
-    }
+void Node::removeIncidentEdge(const Edge* edge) {
+    incidentEdges_.erase(
+        std::remove(incidentEdges_.begin(), incidentEdges_.end(), edge),
+        incidentEdges_.end()
+    );
 }
 
-const std::vector<Edge*>& Node::incident_edges() const {
-    return incident_edges_;
-}
-
-const std::vector<Edge*>& Node::outgoing_edges() const {
-    return outgoing_edges_;
+const std::vector<Edge*>& Node::incidentEdges() const {
+    return incidentEdges_;
 }

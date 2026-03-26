@@ -40,8 +40,13 @@ int main(int argc, char** argv) {
         std::cout << "Problem 3.1 - Strongly Connected Components\n";
         std::cout << "Representation: " << to_string(options.representation) << '\n';
         std::cout << "Output mode: " << to_string(options.output_mode) << '\n';
-        std::cout << "Expected nodes: " << options.expected_nodes << '\n';
-        std::cout << "Expected edges: " << options.expected_edges << '\n';
+        if (options.counts_provided) {
+            std::cout << "Expected nodes: " << options.expected_nodes << '\n';
+            std::cout << "Expected edges: " << options.expected_edges << '\n';
+        } else {
+            std::cout << "Expected nodes: auto\n";
+            std::cout << "Expected edges: auto\n";
+        }
         std::cout << "Loaded nodes: " << graph->nodes().size() << '\n';
         std::cout << "Loaded edges: " << graph->edges().size() << '\n';
         std::cout << "Load time (ms): " << load_ms << '\n';

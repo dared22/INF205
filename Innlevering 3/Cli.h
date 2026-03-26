@@ -20,6 +20,7 @@ enum class GraphRepresentation {
 struct CommonCliOptions {
     long expected_nodes = 0;
     long expected_edges = 0;
+    bool counts_provided = false;
     std::string graph_file;
     OutputMode output_mode = OutputMode::Verbose;
     GraphRepresentation representation = GraphRepresentation::Linked;

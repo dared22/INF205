@@ -1,47 +1,35 @@
 #include "MatrixGraph.h"
 
 #include "Edge.h"
-#include "Node.h"
 
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 
-namespace {
-
-void parse_and_insert_line(
-    const std::string& line,
-    AbstractGraph& graph,
-    const std::string& filename,
-    std::size_t line_number
-) {
-    if (line.empty()) {
-        return;
+int MatrixGraph::findOrCreateNodeIndex(const std::string& label) {
+    const auto found = labelToIndex_.find(label);
+    if (found != labelToIndex_.end()) {
+        return found->second;
     }
 
-    std::istringstream iss(line);
-    std::string source_label;
-    std::string edge_label;
-    std::string target_label;
-    std::string trailing_token;
+    const int newIndex = static_cast<int>(nodes_.size());
+    Node* node = new Node(label);
+    nodes_.push_back(node);
+    labelToIndex_[label] = newIndex;
 
-    if (!(iss >> source_label >> edge_label >> target_label)) {
-        return;
-    }
+    expandMatrix();
 
-    if (!target_label.empty() && target_label.back() == '.') {
-        target_label.pop_back();
-    } else if (iss >> trailing_token && trailing_token == ".") {
-    } else {
-        throw std::runtime_error(
-            "Invalid triple notation in " + filename + " at line " + std::to_string(line_number)
-        );
-    }
-
-    graph.insert_edge(source_label, edge_label, target_label);
+    return newIndex;
 }
 
-}  // namespace
+void MatrixGraph::expandMatrix() {
+    const int newSize = static_cast<int>(nodes_.size());
+
+    for (auto& row : matrix_) {
+        row.push_back({});
+    }
+
+    matrix_.push_back(std::vector<std::vector<std::string>>(newSize));
+}
 
 MatrixGraph::~MatrixGraph() {
     for (Edge* edge : edges_) {
@@ -54,41 +42,30 @@ MatrixGraph::~MatrixGraph() {
 }
 
 void MatrixGraph::insert_edge(
-    const std::string& source_label,
-    const std::string& edge_label,
-    const std::string& target_label
+    std::string node_a_label,
+    std::string edge_label,
+    std::string node_b_label
 ) {
-    const std::size_t source_index = find_or_create_node_index(source_label);
-    const std::size_t target_index = find_or_create_node_index(target_label);
+    const int sourceIndex = findOrCreateNodeIndex(node_a_label);
+    const int targetIndex = findOrCreateNodeIndex(node_b_label);
 
-    Edge* edge = new Edge(edge_label, nodes_[source_index], nodes_[target_index]);
+    matrix_[sourceIndex][targetIndex].push_back(edge_label);
+
+    Edge* edge = new Edge(edge_label, nodes_[sourceIndex], nodes_[targetIndex]);
     edges_.push_back(edge);
-    matrix_[source_index][target_index].push_back(edge);
 
-    nodes_[source_index]->add_incident_edge(edge);
-    nodes_[source_index]->add_outgoing_edge(edge);
-    if (source_index != target_index) {
-        nodes_[target_index]->add_incident_edge(edge);
-    }
-}
-
-void MatrixGraph::load(const std::string& filename) {
-    std::ifstream input(filename);
-    if (!input) {
-        throw std::runtime_error("Could not open graph file: " + filename);
-    }
-
-    std::string line;
-    std::size_t line_number = 0;
-    while (std::getline(input, line)) {
-        ++line_number;
-        parse_and_insert_line(line, *this, filename, line_number);
+    nodes_[sourceIndex]->addIncidentEdge(edge);
+    if (sourceIndex != targetIndex) {
+        nodes_[targetIndex]->addIncidentEdge(edge);
     }
 }
 
 Node* MatrixGraph::find_node(const std::string& label) const {
-    const auto it = node_index_by_label_.find(label);
-    return it == node_index_by_label_.end() ? nullptr : nodes_[it->second];
+    const auto found = labelToIndex_.find(label);
+    if (found == labelToIndex_.end()) {
+        return nullptr;
+    }
+    return nodes_[found->second];
 }
 
 const std::vector<Node*>& MatrixGraph::nodes() const {
@@ -99,25 +76,242 @@ const std::vector<Edge*>& MatrixGraph::edges() const {
     return edges_;
 }
 
-std::size_t MatrixGraph::find_or_create_node_index(const std::string& label) {
-    const auto it = node_index_by_label_.find(label);
-    if (it != node_index_by_label_.end()) {
-        return it->second;
-    }
+void MatrixGraph::save(const std::string& filename) {
+    std::ofstream file(filename);
 
-    const std::size_t index = nodes_.size();
-    nodes_.push_back(new Node(label));
-    node_index_by_label_[label] = index;
-    expand_matrix();
-    return index;
+    for (int i = 0; i < static_cast<int>(nodes_.size()); ++i) {
+        for (int j = 0; j < static_cast<int>(nodes_.size()); ++j) {
+            for (const std::string& edgeLabel : matrix_[i][j]) {
+                file << nodes_[i]->label() << " "
+                     << edgeLabel << " "
+                     << nodes_[j]->label() << "." << std::endl;
+            }
+        }
+    }
 }
 
-void MatrixGraph::expand_matrix() {
-    const std::size_t new_size = nodes_.size();
+void MatrixGraph::load(const std::string& filename) {
+    std::ifstream file(filename);
+    std::string sourceLabel;
+    std::string edgeLabel;
+    std::string targetLabel;
 
-    for (auto& row : matrix_) {
-        row.resize(new_size);
+    while (file >> sourceLabel >> edgeLabel >> targetLabel) {
+        if (!targetLabel.empty() && targetLabel.back() == '.') {
+            targetLabel.pop_back();
+        }
+        insert_edge(sourceLabel, edgeLabel, targetLabel);
+    }
+}
+
+bool MatrixGraph::hasConnections(int index) {
+    const int size = static_cast<int>(nodes_.size());
+
+    for (int j = 0; j < size; ++j) {
+        if (!matrix_[index][j].empty()) {
+            return true;
+        }
     }
 
-    matrix_.resize(new_size, std::vector<std::vector<Edge*>>(new_size));
+    for (int i = 0; i < size; ++i) {
+        if (!matrix_[i][index].empty()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void MatrixGraph::removeNodeByIndex(int index) {
+    Node* node = nodes_[index];
+
+    labelToIndex_.erase(node->label());
+
+    matrix_.erase(matrix_.begin() + index);
+    for (auto& row : matrix_) {
+        row.erase(row.begin() + index);
+    }
+
+    nodes_.erase(nodes_.begin() + index);
+
+    for (int i = index; i < static_cast<int>(nodes_.size()); ++i) {
+        labelToIndex_[nodes_[i]->label()] = i;
+    }
+
+    std::vector<Edge*> remainingEdges;
+    for (Edge* edge : edges_) {
+        if (edge->sourceNode() == node || edge->targetNode() == node) {
+            delete edge;
+        } else {
+            remainingEdges.push_back(edge);
+        }
+    }
+    edges_ = remainingEdges;
+
+    delete node;
+}
+
+void MatrixGraph::removeIfIsolated(int index) {
+    if (index < 0 || index >= static_cast<int>(nodes_.size())) {
+        return;
+    }
+
+    if (!hasConnections(index)) {
+        removeNodeByIndex(index);
+    }
+}
+
+void MatrixGraph::disconnect(std::string node_a_label, std::string node_b_label) {
+    const auto foundA = labelToIndex_.find(node_a_label);
+    const auto foundB = labelToIndex_.find(node_b_label);
+
+    if (foundA == labelToIndex_.end() || foundB == labelToIndex_.end()) {
+        return;
+    }
+
+    int indexA = foundA->second;
+    int indexB = foundB->second;
+    Node* nodeA = nodes_[indexA];
+    Node* nodeB = nodes_[indexB];
+
+    matrix_[indexA][indexB].clear();
+
+    std::vector<Edge*> remainingEdges;
+    for (Edge* edge : edges_) {
+        if (edge->sourceNode() == nodeA && edge->targetNode() == nodeB) {
+            nodeA->removeIncidentEdge(edge);
+            nodeB->removeIncidentEdge(edge);
+            delete edge;
+        } else {
+            remainingEdges.push_back(edge);
+        }
+    }
+    edges_ = remainingEdges;
+
+    if (indexA != indexB) {
+        if (!hasConnections(indexB)) {
+            removeNodeByIndex(indexB);
+            const auto refreshA = labelToIndex_.find(node_a_label);
+            if (refreshA != labelToIndex_.end()) {
+                indexA = refreshA->second;
+                if (!hasConnections(indexA)) {
+                    removeNodeByIndex(indexA);
+                }
+            }
+        } else if (!hasConnections(indexA)) {
+            removeNodeByIndex(indexA);
+        }
+    } else if (!hasConnections(indexA)) {
+        removeNodeByIndex(indexA);
+    }
+}
+
+void MatrixGraph::remove_node(std::string node_label) {
+    const auto found = labelToIndex_.find(node_label);
+    if (found == labelToIndex_.end()) {
+        return;
+    }
+
+    const int index = found->second;
+
+    std::vector<std::string> neighborLabels;
+    const int size = static_cast<int>(nodes_.size());
+    for (int j = 0; j < size; ++j) {
+        if (j != index && !matrix_[index][j].empty()) {
+            neighborLabels.push_back(nodes_[j]->label());
+        }
+    }
+    for (int i = 0; i < size; ++i) {
+        if (i != index && !matrix_[i][index].empty()) {
+            neighborLabels.push_back(nodes_[i]->label());
+        }
+    }
+
+    removeNodeByIndex(index);
+
+    for (const std::string& label : neighborLabels) {
+        const auto neighborFound = labelToIndex_.find(label);
+        if (neighborFound != labelToIndex_.end()) {
+            removeIfIsolated(neighborFound->second);
+        }
+    }
+}
+
+MatrixGraph::MatrixGraph(const MatrixGraph& other) {
+    for (Node* node : other.nodes_) {
+        Node* newNode = new Node(node->label());
+        nodes_.push_back(newNode);
+        labelToIndex_[node->label()] = static_cast<int>(nodes_.size()) - 1;
+    }
+
+    matrix_ = other.matrix_;
+
+    for (Edge* edge : other.edges_) {
+        Node* sourceNode = nodes_[labelToIndex_[edge->sourceNode()->label()]];
+        Node* targetNode = nodes_[labelToIndex_[edge->targetNode()->label()]];
+        Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+        edges_.push_back(newEdge);
+        sourceNode->addIncidentEdge(newEdge);
+        if (sourceNode != targetNode) {
+            targetNode->addIncidentEdge(newEdge);
+        }
+    }
+}
+
+MatrixGraph& MatrixGraph::operator=(const MatrixGraph& other) {
+    if (this != &other) {
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+        nodes_.clear();
+        edges_.clear();
+        labelToIndex_.clear();
+        matrix_.clear();
+
+        for (Node* node : other.nodes_) {
+            Node* newNode = new Node(node->label());
+            nodes_.push_back(newNode);
+            labelToIndex_[node->label()] = static_cast<int>(nodes_.size()) - 1;
+        }
+
+        matrix_ = other.matrix_;
+
+        for (Edge* edge : other.edges_) {
+            Node* sourceNode = nodes_[labelToIndex_[edge->sourceNode()->label()]];
+            Node* targetNode = nodes_[labelToIndex_[edge->targetNode()->label()]];
+            Edge* newEdge = new Edge(edge->label(), sourceNode, targetNode);
+            edges_.push_back(newEdge);
+            sourceNode->addIncidentEdge(newEdge);
+            if (sourceNode != targetNode) {
+                targetNode->addIncidentEdge(newEdge);
+            }
+        }
+    }
+    return *this;
+}
+
+MatrixGraph::MatrixGraph(MatrixGraph&& other) noexcept
+    : nodes_(std::move(other.nodes_)),
+      labelToIndex_(std::move(other.labelToIndex_)),
+      matrix_(std::move(other.matrix_)),
+      edges_(std::move(other.edges_)) {}
+
+MatrixGraph& MatrixGraph::operator=(MatrixGraph&& other) noexcept {
+    if (this != &other) {
+        for (Edge* edge : edges_) {
+            delete edge;
+        }
+        for (Node* node : nodes_) {
+            delete node;
+        }
+
+        nodes_ = std::move(other.nodes_);
+        labelToIndex_ = std::move(other.labelToIndex_);
+        matrix_ = std::move(other.matrix_);
+        edges_ = std::move(other.edges_);
+    }
+    return *this;
 }

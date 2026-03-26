@@ -2,21 +2,29 @@
 #define EDGE_H
 
 #include <string>
+#include <vector>
 
 class Node;
 
 class Edge {
 public:
-    Edge(std::string label, Node* source_node, Node* target_node);
+    Edge(std::string label, Node* sourceNode, Node* targetNode);
 
     const std::string& label() const;
-    Node* source_node() const;
-    Node* target_node() const;
+    void setLabel(std::string label);
+    Node* sourceNode() const;
+    Node* targetNode() const;
+    void setSourceNode(Node* sourceNode);
+    void setTargetNode(Node* targetNode);
+    const std::vector<Node*>& incidentNodes() const;
 
 private:
+    void syncIncidentNodes();
+
     std::string label_;
-    Node* source_node_;
-    Node* target_node_;
+    Node* sourceNode_;
+    Node* targetNode_;
+    std::vector<Node*> incidentNodes_;
 };
 
 #endif

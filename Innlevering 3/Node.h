@@ -12,16 +12,14 @@ public:
 
     const std::string& label() const;
 
-    void add_incident_edge(Edge* edge);
-    void add_outgoing_edge(Edge* edge);
+    void addIncidentEdge(Edge* edge);
+    void removeIncidentEdge(const Edge* edge);
 
-    const std::vector<Edge*>& incident_edges() const;
-    const std::vector<Edge*>& outgoing_edges() const;
+    const std::vector<Edge*>& incidentEdges() const;
 
 private:
     std::string label_;
-    std::vector<Edge*> incident_edges_;
-    std::vector<Edge*> outgoing_edges_;
+    std::vector<Edge*> incidentEdges_;
 };
 
 #endif

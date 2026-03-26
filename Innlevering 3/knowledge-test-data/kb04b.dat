@@ -1,0 +1,28 @@
+n0 r1 n3.
+n0 r0 n5.
+n0 r1 n5.
+n1 r0 n3.
+n1 r0 n4.
+n1 r1 n4.
+n2 r1 n3.
+
+n3 r2 n6.
+n3 r2 n7.
+n3 r3 n7.
+n3 r2 n8.
+n4 r2 n7.
+n4 r2 n8.
+n4 r3 n8.
+n5 r2 n6.
+n5 r2 n7.
+
+n6 r4 n10.
+n6 r5 n10.
+
+n9 r6 n12.
+n9 r6 n13.
+n9 r7 n14.
+n10 r6 n13.
+n11 r7 n14.
+
+n15 r8 n15.

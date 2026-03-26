@@ -1,0 +1,14 @@
+n0 r0 n1.
+n0 r1 n1.
+
+n1 r2 n2.
+n1 r3 n2.
+
+n2 r4 n3.
+n2 r5 n3.
+
+n3 r6 n4.
+n3 r7 n4.
+
+n5 r8 n6.
+n7 r8 n7.
