@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
 import matplotlib.pyplot as plt
 
-# Read CSV file
+
 with open('results/benchmark_results.csv') as f:
     lines = f.readlines()
 
-# Parse data: skip empty lines, convert to [n, rep, time]
+
 data = []
 for line in lines[1:]:  # Skip header
     line = line.strip()
@@ -16,12 +15,12 @@ for line in lines[1:]:  # Skip header
         time = int(parts[2])
         data.append((n, rep, time))
 
-# Split into 3 tests (10 rows each, blank lines are already skipped)
+
 test1 = data[0:10]    # Diamond constant
 test2 = data[10:20]   # Diamond proportional
 test3 = data[20:30]   # SCC
 
-# Function to extract linked/matrix data
+
 def get_curves(test_data):
     linked_n = []
     linked_t = []
@@ -38,16 +37,16 @@ def get_curves(test_data):
     
     return linked_n, linked_t, matrix_n, matrix_t
 
-# Get curves for each test
+
 test_configs = [
     (test1, "Diamond: Constant (m=5)"),
     (test2, "Diamond: Proportional (m=n/10)"),
     (test3, "SCC Algorithm")
 ]
 
-# === LINEAR SCALE PLOT ===
+
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
-fig.suptitle('Task 3.4 - Scaling & Runtime', fontsize=14, fontweight='bold')
+fig.suptitle('Task 3.4 - Scaling  Runtime', fontsize=14, fontweight='bold')
 
 for idx, (test_data, title) in enumerate(test_configs):
     ln, lt, mn, mt = get_curves(test_data)
@@ -62,16 +61,16 @@ for idx, (test_data, title) in enumerate(test_configs):
 
 plt.tight_layout()
 plt.savefig('results/benchmark_plots.png', dpi=150)
-print("✓ Saved: results/benchmark_plots.png")
+print("Saved: results/benchmark_plots.png")
 
-# === LOG-LOG SCALE PLOT ===
+
 fig, ax = plt.subplots(1, 3, figsize=(15, 4))
 fig.suptitle('Log-Log Plots (Complexity)', fontsize=14, fontweight='bold')
 
 for idx, (test_data, title) in enumerate(test_configs):
     ln, lt, mn, mt = get_curves(test_data)
     
-    # Add 0.1 to avoid log(0)
+    
     lt = [max(0.1, t) for t in lt]
     mt = [max(0.1, t) for t in mt]
     
@@ -85,5 +84,5 @@ for idx, (test_data, title) in enumerate(test_configs):
 
 plt.tight_layout()
 plt.savefig('results/benchmark_loglog.png', dpi=150)
-print("✓ Saved: results/benchmark_loglog.png")
+print("Saved: results/benchmark_loglog.png")
 print("\nBoth plots generated!")
