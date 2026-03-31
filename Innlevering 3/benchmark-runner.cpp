@@ -8,8 +8,8 @@
 
 int main() {
 
-    system("mkdir data 2>nul");
-    system("mkdir results 2>nul");
+    system("mkdir -p data");
+    system("mkdir -p results");
     
     std::cout << "\nTask 3.4 - Scaling & Runtime Measurement\n\n";
     

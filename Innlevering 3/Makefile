@@ -29,6 +29,9 @@ benchmark-runner: benchmark-runner.cpp
 graph-demo-pro2: graph-demo-pro2.cpp $(COMMON_SOURCES)
 	$(CXX) $(CXXFLAGS) -o $@ graph-demo-pro2.cpp $(COMMON_SOURCES)
 
+run-benchmark: benchmark-runner
+	./benchmark-runner
+
 pro21: graph-demo-pro2
 	./graph-demo-pro2 pro21
 
