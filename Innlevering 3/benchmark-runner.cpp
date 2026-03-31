@@ -5,6 +5,19 @@
 #include <chrono>
 #include <string>
 
+long long measure(const std::string& cmd, int repeats) {
+    long long total = 0;
+
+    for (int i = 0; i < repeats; i++) {
+        auto start = std::chrono::high_resolution_clock::now();
+        system(cmd.c_str());
+        auto end = std::chrono::high_resolution_clock::now();
+
+        total += std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    }
+
+    return total / repeats;
+}
 
 int main() {
 
@@ -18,6 +31,7 @@ int main() {
     std::ofstream csv("results/benchmark_results.csv");
     csv << "n,representation,time_ms\n";
     
+    const int repeats = 5;
 
     std::cout << "1. DIAMOND PATH - Constant Query Size (m=5)\n\n";
     
@@ -34,12 +48,8 @@ int main() {
                                 "data/graph_" + std::to_string(size) + ".dat " +
                                 "data/query_" + std::to_string(size) + ".dat " +
                                 "--linked -s";
-        
-        auto start = std::chrono::high_resolution_clock::now();
-        system(linked_cmd.c_str());
-        auto end = std::chrono::high_resolution_clock::now();
-        
-        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        long long ms = measure(linked_cmd, repeats);
         std::cout << "    linked:  " << ms << " ms\n";
         csv << size << ",linked," << ms << "\n";
         
@@ -49,12 +59,8 @@ int main() {
                                 "data/graph_" + std::to_string(size) + ".dat " +
                                 "data/query_" + std::to_string(size) + ".dat " +
                                 "--matrix -s";
-        
-        start = std::chrono::high_resolution_clock::now();
-        system(matrix_cmd.c_str());
-        end = std::chrono::high_resolution_clock::now();
-        
-        ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        ms = measure(matrix_cmd, repeats);
         std::cout << "    matrix:  " << ms << " ms\n\n";
         csv << size << ",matrix," << ms << "\n";
     }
@@ -81,12 +87,8 @@ int main() {
                                 "data/graph_prop_" + std::to_string(size) + ".dat " +
                                 "data/query_prop_" + std::to_string(size) + ".dat " +
                                 "--linked -s";
-        
-        auto start = std::chrono::high_resolution_clock::now();
-        system(linked_cmd.c_str());
-        auto end = std::chrono::high_resolution_clock::now();
-        
-        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+        long long ms = measure(linked_cmd, repeats);
         std::cout << "    linked:  " << ms << " ms\n";
         csv << size << ",linked," << ms << "\n";
         
@@ -96,11 +98,7 @@ int main() {
                                 "data/query_prop_" + std::to_string(size) + ".dat " +
                                 "--matrix -s";
         
-        start = std::chrono::high_resolution_clock::now();
-        system(matrix_cmd.c_str());
-        end = std::chrono::high_resolution_clock::now();
-        
-        ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        ms = measure(matrix_cmd, repeats);
         std::cout << "    matrix:  " << ms << " ms\n\n";
         csv << size << ",matrix," << ms << "\n";
     }
@@ -125,11 +123,7 @@ int main() {
                                 "data/scc_graph_" + std::to_string(size) + ".dat " +
                                 "--linked -s";
         
-        auto start = std::chrono::high_resolution_clock::now();
-        system(linked_cmd.c_str());
-        auto end = std::chrono::high_resolution_clock::now();
-        
-        long long ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        long long ms = measure(linked_cmd, repeats);
         std::cout << "    linked:  " << ms << " ms\n";
         csv << size << ",linked," << ms << "\n";
         
@@ -138,11 +132,7 @@ int main() {
                                 "data/scc_graph_" + std::to_string(size) + ".dat " +
                                 "--matrix -s";
         
-        start = std::chrono::high_resolution_clock::now();
-        system(matrix_cmd.c_str());
-        end = std::chrono::high_resolution_clock::now();
-        
-        ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        ms = measure(matrix_cmd, repeats);
         std::cout << "    matrix:  " << ms << " ms\n\n";
         csv << size << ",matrix," << ms << "\n";
     }
