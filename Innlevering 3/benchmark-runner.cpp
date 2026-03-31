@@ -5,6 +5,7 @@
 #include <chrono>
 #include <string>
 
+// for measuring execution time of a command with multiple repetitions
 long long measure(const std::string& cmd, int repeats) {
     long long total = 0;
 
